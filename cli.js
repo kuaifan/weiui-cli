@@ -29,6 +29,7 @@ function initProject(name, version, templateName) {
         }
         logger.weiui("Copying template file...");
         fs.copySync(releasePath, name);
+        appKeyReplace(path.normalize(process.cwd() + "/" + name + "/weiui.config.js"));
         logger.sep();
         logger.weiui("Project created.");
         logger.sep();
@@ -66,6 +67,37 @@ function displayReleases() {
             console.log(chalk.green.underline(t));
         })
     })
+}
+
+function appKeyReplace(path) {
+    if (!fs.existsSync(path)) {
+        return;
+    }
+    var config = require(path);
+    var content = '';
+    if (config === null || typeof config !== 'object') {
+        return;
+    }
+    if (typeof config.appKey === 'undefined') {
+        return;
+    }
+    var createRand = function(len) {
+        len = len || 32;
+        let $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678oOLl9gqVvUuI1';
+        let maxPos = $chars.length;
+        let pwd = '';
+        for (let i = 0; i < len; i++) {
+            pwd += $chars.charAt(Math.floor(Math.random() * maxPos));
+        }
+        return pwd;
+    };
+    logger.weiui("Create appKey...");
+    config.appKey = createRand(32);
+    content+= "/**\n * 配置文件\n * 参数详细说明：http://weiui.cc/#/start/config\n */\n";
+    content+= "module.exports = ";
+    content+= JSON.stringify(config, null, "\t");
+    content+= ";";
+    fs.writeFileSync(path, content, 'utf8');
 }
 
 var args = yargs
