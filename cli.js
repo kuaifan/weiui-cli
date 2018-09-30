@@ -116,7 +116,7 @@ function initProject(createName) {
                 fs.copySync(releasePath, name);
 
                 changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
-                changeAppKey(rundir + "/weiui.config.js");
+                changeAppKey(rundir);
 
                 logger.sep();
                 logger.weiui("Project created.");
@@ -186,10 +186,11 @@ function changeFile(path, oldText, newText) {
  * @param  {string} path 文件路径.
  */
 function changeAppKey(path) {
-    if (!fs.existsSync(path)) {
+    let configPath =  path + "/weiui.config.js";
+    if (!fs.existsSync(configPath)) {
         return;
     }
-    let config = require(path);
+    let config = require(configPath);
     let content = '';
     if (config === null || typeof config !== 'object') {
         return;
@@ -213,7 +214,16 @@ function changeAppKey(path) {
     content+= "module.exports = ";
     content+= JSON.stringify(config, null, "\t");
     content+= ";";
-    fs.writeFileSync(path, content, 'utf8');
+    fs.writeFileSync(configPath, content, 'utf8');
+    //
+    let androidPath = path + "/platforms/android/WeexWeiui/app/src/main/assets/weiui/config.json";
+    if (fs.existsSync(androidPath)) {
+        fs.writeFileSync(androidPath, JSON.stringify(config), 'utf8');
+    }
+    let iosPath = path + "/platforms/ios/WeexWeiui/bundlejs/weiui/config.json";
+    if (fs.existsSync(androidPath)) {
+        fs.writeFileSync(iosPath, JSON.stringify(config), 'utf8');
+    }
 }
 
 let args = yargs
