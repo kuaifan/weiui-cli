@@ -116,7 +116,6 @@ function initProject(createName) {
                 fs.copySync(releasePath, name);
 
                 changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
-                changeFile(rundir + '/platforms/android/WeexWeiui/app/src/main/AndroidManifest.xml', 'cc.weiui.playground', applicationID);
                 changeAppKey(rundir + "/weiui.config.js");
 
                 logger.sep();
