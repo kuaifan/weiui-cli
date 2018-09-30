@@ -1,6 +1,6 @@
 {
     "name": "weiui-cli",
-    "version": "1.0.0-Alpha.6",
+    "version": "1.0.0-Alpha.7",
     "description": "A simple CLI for scaffolding weex projects, we provide weiui-template to quickly build small and medium sized app.",
     "bin": {
         "weiui": "./cli.js"
@@ -12,9 +12,9 @@
     "keywords": [
         "weex",
         "weex ui",
+        "weiui",
         "vue",
-        "hybird app",
-        "weiui"
+        "hybird app"
     ],
     "author": "KuaiFan",
     "license": "ISC",
@@ -25,6 +25,9 @@
         "jsonfile": "^3.0.0",
         "request": "^2.81.0",
         "tmp": "^0.0.33",
+        "inquirer": "^3.3.0",
+        "ora": "^1.3.0",
+        "shelljs": "^0.8.2",
         "yargs": "^8.0.2"
     }
 }

@@ -1,6 +1,7 @@
 const jsonfile = require('jsonfile');
 const fs = require("fs-extra");
 const path = require("path");
+const ora = require('ora');
 const decompress = require('decompress');
 const tmp = require('tmp');
 const request = require('request').defaults({
@@ -9,7 +10,7 @@ const request = require('request').defaults({
     }
 });
 
-var logger = require("./logger");
+let logger = require("./logger");
 
 class TemplateRelease {
     /**
@@ -52,14 +53,14 @@ class TemplateRelease {
 
     /**
      * 获取指定版本的 release，首先尝试缓存（CACHE_TEMPLATE_PATH），如果未缓存，再尝试下载并缓存
-     * @param {string} version 指定版本，如果为空，表示最新版本
+     * @param {string} release 指定版本，如果为空，表示最新版本
      * @param {Function} cb 通过该回调返回错误 error，以及无错时的 release 的路径，一般形如 ~/.weiui/template/0.1.0
      */
-    fetchRelease(version, cb) {
+    fetchRelease(release, cb) {
         let releasesInfo = this._readReleaseJSON();
-        if (version) {
+        if (release) {
             // Version specified, try cache.
-            let info = releasesInfo[version];
+            let info = releasesInfo[release];
             if (info) {
                 // Hit cache.
                 cb(null, path.join(this.CACHE_TEMPLATE_PATH, info.path));
@@ -67,15 +68,17 @@ class TemplateRelease {
             }
         }
 
-        let url = this._getReleaseUrl(version);
-        logger.weiui(`Fetching release: ${version ? version : "latest"}...`);
+        let url = this._getReleaseUrl(release);
+        let spinDown = ora(`Downloading template release: ${release ? release : "latest"}...`);
+        spinDown.start();
         request(url, (err, res, body) => {
+            spinDown.stop();
             if (err || res.statusCode != 200) {
                 let errorInfo = err ? err : `${res.statusCode}: ${res.body}`;
                 logger.weiui(`Failed to fetch ${url} - ${errorInfo}`);
                 logger.weiui('Checking cache...');
-                if (!version) {
-                    // When fetch error, and no version specified, try to figure out the latest release.
+                if (!release) {
+                    // When fetch error, and no release specified, try to figure out the latest release.
                     let latestRleaseInfo = this.getCachedReleaseInfo();
                     if (latestRleaseInfo) {
                         // Figured out latest release in cache.
@@ -84,7 +87,7 @@ class TemplateRelease {
                         return;
                     }
                 }
-                cb(`Failed to fetch release of ${version ? version : "latest"}: ${errorInfo}`);
+                cb(`Failed to fetch release of ${release ? release : "latest"}: ${errorInfo}`);
                 return;
             }
             // Successfully fetched info.
@@ -100,7 +103,9 @@ class TemplateRelease {
                 cb(null, targetPath);
                 return;
             }
+            spinDown.start();
             this._downloadAndUnzip(info["zipball_url"], targetPath, (err) => {
+                spinDown.stop();
                 if (err) {
                     cb && cb(err);
                     return;
@@ -132,13 +137,13 @@ class TemplateRelease {
 
     /**
      * 返回缓存里的 release 信息
-     * @param {string} [version] 指定版本，不指定则返回最新
+     * @param {string} [release] 指定版本，不指定则返回最新
      * @return {Object} release 信息
      */
-    getCachedReleaseInfo(version) {
+    getCachedReleaseInfo(release) {
         let releasesInfo = this._readReleaseJSON();
-        if (version) {
-            return releasesInfo[version];
+        if (release) {
+            return releasesInfo[release];
         }
         let latestRleaseInfo = null;
         for (let tag in releasesInfo) {
@@ -154,11 +159,11 @@ class TemplateRelease {
 
     /**
      * 返回缓存里的 release 路径
-     * @param {string} [version] 指定版本，不指定则返回最新
+     * @param {string} [release] 指定版本，不指定则返回最新
      * @return {string} release 路径
      */
-    getCachedRelease(version) {
-        let info = this.getCachedReleaseInfo(version);
+    getCachedRelease(release) {
+        let info = this.getCachedReleaseInfo(release);
         return info ? path.join(this.CACHE_TEMPLATE_PATH, info.path) : null;
     }
 
@@ -184,20 +189,20 @@ class TemplateRelease {
      * @param {Function} cb 接收参数 error
      */
      _downloadAndUnzip(url, savePath, cb) {
-        console.log("Trying to download...");
+        //console.log("Trying to download...");
         const TMP_DOWNLOAD_PATH = tmp.tmpNameSync({dir: require('os').tmpdir()}) + ".zip";
         let file = fs.createWriteStream(TMP_DOWNLOAD_PATH);
         file.on("close", () => {
-            console.log("Extracting...");
+            //console.log("Extracting...");
             decompress(TMP_DOWNLOAD_PATH, this.CACHE_TEMPLATE_PATH).then(() => {
-                console.log('Done extracting.');
+                //console.log('Done extracting.');
                 let origPath = this._getLastReleasePath();
                 fs.moveSync(origPath, savePath); // 重命名为指定名
                 fs.unlinkSync(TMP_DOWNLOAD_PATH); // 删除下载的压缩包
                 cb && cb();
             })
         }).on("error", (err) => {
-            console.log(err);
+            //console.log(err);
             cb && cb(err)
         });
         request.get(url)
@@ -210,7 +215,7 @@ class TemplateRelease {
                 }
             })
             .on("end", function () {
-                console.log("Download finished.");
+                //console.log("Download finished.");
             })
             .pipe(file);
     }

@@ -1,87 +1,204 @@
 #!/usr/bin/env node
 
-var yargs = require("yargs");
-var path = require("path");
-var fs = require("fs-extra");
-var chalk = require('chalk');
-var logger = require("./logger");
+const yargs = require("yargs");
+const path = require("path");
+const fs = require("fs-extra");
+const chalk = require('chalk');
+const inquirer = require('inquirer');
+const ora = require('ora');
+const shelljs = require('shelljs');
+const logger = require("./logger");
 
 const TemplateRelease = require("./template-release");
 const constants = require('./index').constants;
-
 const templateRelease = new TemplateRelease(constants.cacheDirName, constants.templateReleaseUrl);
 
-/**
- * 复制 template 文件以创建 weiui 工程.
- * @param  {string} name project name.
- * @param  {string} [version] template version.
- * @param  {string} [templateName] init src/ dir with specified template
- */
-function initProject(name, version, templateName) {
-    if (fs.existsSync(name)) {
-        logger.error(`File ${name} already exist.`);
+let questions = function(inputName, releaseLists) {
+    let array = [{
+        type: 'input',
+        name: 'name',
+        default: function() {
+            if (typeof inputName != 'string') inputName = "";
+            return inputName.trim() ? inputName.trim() : 'weiui-demo';
+        },
+        message: "Project name",
+        validate: function(value) {
+            let pass = value.match(/^[0-9a-z\-_]+$/i);
+            if (pass) {
+                return true;
+            }
+
+            return 'Input format error, please re-enter.';
+        }
+    }, {
+        type: 'list',
+        name: 'release',
+        message: "Template releases",
+        choices: releaseLists
+    }, {
+        type: 'input',
+        name: 'applicationID',
+        default: function() {
+            return 'cc.weiui.demo';
+        },
+        message: "Android application id",
+        validate: function(value) {
+            let pass = value.match(/^[a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]+$/);
+            if (pass) {
+                return true;
+            }
+            return 'Input format error, please re-enter.';
+        }
+    }];
+    if (shelljs.which('pod')) {
+        array.push({
+            type: 'confirm',
+            name: 'runpod',
+            default: function() {
+                return true;
+            },
+            message: "iOS project run pod install",
+        });
     }
-    logger.weiui("Creating project...");
-    templateRelease.fetchRelease(version, function (err, releasePath) {
+    return array;
+};
+
+/**
+ * 创建 weiui 工程.
+ */
+function initProject(createName) {
+    let spinFetch = ora('Downloading releases lists...');
+    spinFetch.start();
+    templateRelease.fetchReleaseVersions((err, result) => {
+        spinFetch.stop();
         if (err) {
             logger.error(err);
             return;
         }
-        logger.weiui("Copying template file...");
-        fs.copySync(releasePath, name);
-        appKeyReplace(path.normalize(process.cwd() + "/" + name + "/weiui.config.js"));
-        logger.sep();
-        logger.weiui("Project created.");
-        logger.sep();
-        logger.weiui("Run flowing code to get started.");
-        logger.weiui(chalk.white(`1. cd ${name}`));
-        logger.weiui(chalk.white(`2. npm install`));
-        logger.weiui(chalk.white(`3. npm run serve`));
-        const templatesDir = path.join(name, 'templates');
-        if (templateName) {
-            logger.sep();
-            logger.weiui("Initing template...");
-            let tPath = path.join(templatesDir, templateName);
-            if (!fs.existsSync(tPath)) {
-                logger.warn(`Template ${templateName} not exist. Using default template.`);
-                return
+        //
+        let lists = [];
+        result.forEach(t => {
+            if (lists.length == 0) {
+                lists.push({
+                    name: t + " (Latest)",
+                    value: t
+                });
+            }else if (lists.length < 5) {
+                lists.push({
+                    name: t,
+                    value: t
+                });
             }
-            let srcPath = path.join(name, "src");
-            fs.removeSync(srcPath);
-            fs.copySync(tPath, srcPath);
-            logger.weiui("Copy template done.");
+        });
+        //
+        if (lists.length == 0) {
+            logger.error("No available releases was found.");
+            return;
         }
-        fs.removeSync(templatesDir);
+        //
+        inquirer.prompt(questions(createName, lists)).then(function(answers) {
+            let _answers = JSON.parse(JSON.stringify(answers));
+            let {name, release, applicationID, runpod} = _answers;
+            let rundir = path.resolve(process.cwd(), name);
+
+            if (fs.existsSync(name)) {
+                logger.error(`Directory [${name}] already exist.`);
+                return;
+            }
+
+            templateRelease.fetchRelease(release == 'latest' ? '' : release, function(error, releasePath) {
+                if (error) {
+                    logger.error(error);
+                    return;
+                }
+
+                logger.weiui("Copying template file...");
+                fs.copySync(releasePath, name);
+
+                changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
+                changeFile(rundir + '/platforms/android/WeexWeiui/app/src/main/AndroidManifest.xml', 'cc.weiui.playground', applicationID);
+                changeAppKey(rundir + "/weiui.config.js");
+
+                logger.sep();
+                logger.weiui("Project created.");
+                logger.sep();
+
+                let finalLog = function(){
+                    logger.weiui("Run flowing code to get started.");
+                    logger.weiui(chalk.white(`1. cd ${name}`));
+                    logger.weiui(chalk.white(`2. npm install`));
+                    logger.weiui(chalk.white(`3. npm run serve`));
+                };
+
+                if (runpod === true) {
+                    let spinPod = ora('Run pod install...');
+                    spinPod.start();
+                    shelljs.cd(rundir + '/platforms/ios/WeexWeiui');
+                    shelljs.exec('pod install', {silent: true}, function(code, stdout, stderr){
+                        spinPod.stop();
+                        if (code !== 0) {
+                            logger.warn("Run pod install error:" + code + ", please run manually later.");
+                        }
+                        finalLog();
+                    });
+                } else {
+                    finalLog();
+                }
+            });
+        });
     });
 }
 
+/**
+ * 列出可用的模板版本
+ */
 function displayReleases() {
-    logger.log("Fetching version info...");
+    logger.log("Fetching release info...");
     templateRelease.fetchReleaseVersions((err, result) => {
         if (err) {
             logger.error(err);
             return;
         }
-        console.log("Available versions:");
+        console.log("Available releases:");
         result.forEach(t => {
             console.log(chalk.green.underline(t));
-        })
+        });
     })
 }
 
-function appKeyReplace(path) {
+/**
+ * 替换字符串
+ * @param  {string} path 文件路径.
+ * @param  {string} oldText
+ * @param  {string} newText
+ */
+function changeFile(path, oldText, newText) {
     if (!fs.existsSync(path)) {
         return;
     }
-    var config = require(path);
-    var content = '';
+    let result = fs.readFileSync(path, 'utf8').replace(new RegExp(oldText, "g"), newText);
+    if (result) {
+        fs.writeFileSync(path, result, 'utf8');
+    }
+}
+
+/**
+ * 生成appKey
+ * @param  {string} path 文件路径.
+ */
+function changeAppKey(path) {
+    if (!fs.existsSync(path)) {
+        return;
+    }
+    let config = require(path);
+    let content = '';
     if (config === null || typeof config !== 'object') {
         return;
     }
     if (typeof config.appKey === 'undefined') {
         return;
     }
-    var createRand = function(len) {
+    let createRand = function(len) {
         len = len || 32;
         let $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678oOLl9gqVvUuI1';
         let maxPos = $chars.length;
@@ -100,49 +217,28 @@ function appKeyReplace(path) {
     fs.writeFileSync(path, content, 'utf8');
 }
 
-var args = yargs
+let args = yargs
     .command({
-        command: "create <name> [version]",
-        desc: "Create a weiui project. Default to use latest version of template.",
-        builder: (yargs) => {
-            yargs.option('template', {
-                alias: 't',
-                describe: 'Init with specified template.'
-            })
-        },
+        command: ["create [name]", "init [name]"],
+        desc: "Create a weiui project.",
         handler: function (argv) {
-            initProject(argv.name, argv.version, argv.template);
+            if (typeof argv.name === "string") {
+                if (fs.existsSync(argv.name)) {
+                    logger.error(`Directory “${argv.name}” already exist.`);
+                    return;
+                }
+            }
+            initProject(argv.name);
         }
     })
     .command({
-        command: "list",
-        desc: "List available version of template releases.",
+        command: ["list", "lists"],
+        desc: "List available template releases.",
         handler: function () {
             displayReleases();
         }
     })
-    .command({
-        command: "list-template",
-        desc: "List available templates for the newest release.",
-        handler: function () {
-            templateRelease.fetchRelease(null, (err, projectPath) => {
-                if (err) {
-                    logger.error(err);
-                    return;
-                }
-                let names = templateRelease.getAvailableTemplateNames(projectPath);
-                console.log("Available templates:");
-                if (names.length) {
-                    names.forEach(n => {
-                        console.log(chalk.green.underline(n));
-                    })
-                } else {
-                    console.log("No templates available.");
-                }
-            })
-        }
-    })
-    .version() // Use package.json's version
+    .version()
     .help()
     .alias({
         "h": "help",
@@ -151,3 +247,5 @@ var args = yargs
     .strict(true)
     .demandCommand()
     .argv;
+
+//发布模块: npm publish
