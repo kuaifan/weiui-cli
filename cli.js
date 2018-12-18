@@ -313,13 +313,6 @@ let args = yargs
         }
     })
     .command({
-        command: ["list", "lists"],
-        desc: "List available template releases.",
-        handler: function () {
-            displayReleases();
-        }
-    })
-    .command({
         command: "run [platform]",
         desc: "Run app in your device.",
         handler: function (argv) {
@@ -338,6 +331,13 @@ let args = yargs
                     }
                 });
             }
+        }
+    })
+    .command({
+        command: ["list", "lists"],
+        desc: "List available template releases.",
+        handler: function () {
+            displayReleases();
         }
     })
     .version()
