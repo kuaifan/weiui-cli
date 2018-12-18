@@ -8,6 +8,7 @@ const inquirer = require('inquirer');
 const ora = require('ora');
 const shelljs = require('shelljs');
 const logger = require("./logger");
+const runapp = require("./lib/run");
 
 const TemplateRelease = require("./template-release");
 const constants = require('./index').constants;
@@ -18,7 +19,7 @@ let questions = function(inputName, releaseLists) {
         type: 'input',
         name: 'name',
         default: function() {
-            if (typeof inputName != 'string') inputName = "";
+            if (typeof inputName !== 'string') inputName = "";
             return inputName.trim() ? inputName.trim() : 'weiui-demo';
         },
         message: "Project name",
@@ -63,6 +64,20 @@ let questions = function(inputName, releaseLists) {
     return array;
 };
 
+let runQuestions = [{
+    type: 'list',
+    name: 'platform',
+    message: 'You can install or update weiui sdk and librarys.',
+    choices: [{
+        name: "ios",
+        value: "ios"
+    }, {
+        name: "android",
+        value: "android"
+    }
+    ]
+}];
+
 /**
  * 创建 weiui 工程.
  */
@@ -78,7 +93,7 @@ function initProject(createName) {
         //
         let lists = [];
         result.forEach(t => {
-            if (lists.length == 0) {
+            if (lists.length === 0) {
                 lists.push({
                     name: t + " (Latest)",
                     value: t
@@ -91,7 +106,7 @@ function initProject(createName) {
             }
         });
         //
-        if (lists.length == 0) {
+        if (lists.length === 0) {
             logger.error("No available releases was found.");
             return;
         }
@@ -106,7 +121,7 @@ function initProject(createName) {
                 return;
             }
 
-            templateRelease.fetchRelease(release == 'latest' ? '' : release, function(error, releasePath) {
+            templateRelease.fetchRelease(release === 'latest' ? '' : release, function(error, releasePath) {
                 if (error) {
                     logger.error(error);
                     return;
@@ -117,6 +132,18 @@ function initProject(createName) {
 
                 changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
                 changeAppKey(rundir);
+
+                if (applicationID !== 'cc.weiui.playground') {
+                    let wxpayfile = rundir + '/plugins/android/weiui_pay/src/main/java/cc/weiui/playground/wxapi/WXPayEntryActivity.java';
+                    let wxpaydir = rundir + '/plugins/android/weiui_pay/src/main/java/' + applicationID.replace(/\./g, '/') + '/wxapi/';
+                    mkdirsSync(wxpaydir);
+                    copyFile(wxpayfile, wxpaydir + 'WXPayEntryActivity.java');
+                    changeFile(wxpaydir + 'WXPayEntryActivity.java', 'package cc.weiui.playground', 'package ' + applicationID);
+                    deleteAll(rundir + '/plugins/android/weiui_pay/src/main/java/cc/weiui/playground');
+                }
+
+                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiApp_xxxxxxxx', 'weiuiApp_' + applicationID.replace(/\./g, '_'));
+                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Weiui/Moduld/WeiuiPayModule.m', 'weiuiApp_xxxxxxxx', 'weiuiApp_' + applicationID.replace(/\./g, '_'));
 
                 logger.sep();
                 logger.weiui("Project created.");
@@ -163,6 +190,51 @@ function displayReleases() {
             console.log(chalk.green.underline(t));
         });
     })
+}
+
+/**
+ * 递归创建目录 同步方法
+ * @param dirname
+ * @returns {boolean}
+ */
+function mkdirsSync(dirname) {
+    if (fs.existsSync(dirname)) {
+        return true;
+    } else {
+        if (mkdirsSync(path.dirname(dirname))) {
+            fs.mkdirSync(dirname);
+            return true;
+        }
+    }
+}
+
+/**
+ * 复制文件
+ * @param src
+ * @param dist
+ */
+function copyFile(src, dist) {
+    fs.writeFileSync(dist, fs.readFileSync(src));
+}
+
+/**
+ * 删除目录
+ * @param path
+ */
+function deleteAll(path) {
+    let files = [];
+    if (fs.existsSync(path)) {
+        files = fs.readdirSync(path);
+        files.forEach(function (file, index) {
+            let curPath = path + "/" + file;
+            if (fs.statSync(curPath).isDirectory()) {
+                deleteAll(curPath);
+            } else {
+                fs.unlinkSync(curPath);
+            }
+        });
+        fs.rmdirSync(path);
+    }
 }
 
 /**
@@ -245,6 +317,27 @@ let args = yargs
         desc: "List available template releases.",
         handler: function () {
             displayReleases();
+        }
+    })
+    .command({
+        command: "run [platform]",
+        desc: "Run app in your device.",
+        handler: function (argv) {
+            let dir = path.basename(process.cwd());
+            if (argv.platform  === "ios") {
+                runapp.runIOS({dir});
+            } else if (argv.platform  === "android") {
+                runapp.runAndroid({dir});
+            } else {
+                inquirer.prompt(runQuestions).then(function(answers) {
+                    let platform = JSON.parse(JSON.stringify(answers)).platform;
+                    if (platform === 'ios') {
+                        runapp.runIOS({dir});
+                    }else if (platform === 'android') {
+                        runapp.runAndroid({dir});
+                    }
+                });
+            }
         }
     })
     .version()
