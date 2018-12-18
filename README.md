@@ -22,19 +22,16 @@ npm update weiui-cli -g
 #### 创建应用
 
 ```bash
-weiui create <projectName> [version]
+weiui create [projectName]
 ```
 
-- projectName: 工程名称（必填*）
-- version: 指定版本号（选题）
+- projectName: 工程名称（选题，默认：weiui_demo）
 
 
 #### 查询版本
 
 ```bash
 weiui list              // 显示可用的版本
-
-weiui list-template     // 显示模版工程里可用的模版
 ```
 
 
