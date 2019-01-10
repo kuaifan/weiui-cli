@@ -2,6 +2,7 @@ const chalk = require('chalk');
 
 const infoLabel = chalk.inverse.green("INFO");
 const weiuiLabel = chalk.inverse.green("weiui");
+const successLabel = chalk.inverse("SUCCESS");
 const warningLabel = chalk.inverse("WARN");
 const errorLabel = chalk.inverse("ERROR");
 
@@ -12,6 +13,10 @@ exports.log = function(msg) {
 
 exports.weiui = function(msg) {
     console.log(`[${weiuiLabel}] ${msg}`);
+};
+
+exports.success = function(msg) {
+    console.log(chalk.green(`[${successLabel}] ${msg}`));
 };
 
 exports.warn = function(msg) {

@@ -340,6 +340,31 @@ let args = yargs
             displayReleases();
         }
     })
+    .command({
+        command: "vue [pageName]",
+        desc: "Create the vue page sample template.",
+        handler: function (argv) {
+            if (typeof argv.pageName === "string" && argv.pageName) {
+                let dir = path.resolve(process.cwd(), "src");
+                if (!fs.existsSync(dir)) {
+                    logger.error(`Directory “src” does not exist.`);
+                    return;
+                }
+                let filePath = dir + "/" + argv.pageName + ".vue";
+                if (fs.existsSync(filePath)) {
+                    logger.error(`File “${argv.pageName}.vue” already exist.`);
+                    return;
+                }
+                let tmlPath = __dirname + "/lib/template/_template.vue";
+                if (!fs.existsSync(tmlPath)) {
+                    logger.error(`Template file does not exist.`);
+                    return;
+                }
+                fs.copySync(tmlPath, filePath);
+                logger.success(`File “${argv.pageName}.vue” created successfully.`);
+            }
+        }
+    })
     .version()
     .help()
     .alias({
