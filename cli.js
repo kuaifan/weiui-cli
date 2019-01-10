@@ -15,6 +15,7 @@ const constants = require('./index').constants;
 const templateRelease = new TemplateRelease(constants.cacheDirName, constants.templateReleaseUrl);
 
 let questions = function(inputName, releaseLists) {
+    let applicationid = "";
     let array = [{
         type: 'input',
         name: 'name',
@@ -43,6 +44,21 @@ let questions = function(inputName, releaseLists) {
             return 'cc.weiui.demo';
         },
         message: "Android application id",
+        validate: function(value) {
+            let pass = value.match(/^[a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]+$/);
+            if (pass) {
+                applicationid = value;
+                return true;
+            }
+            return 'Input format error, please re-enter.';
+        }
+    }, {
+        type: 'input',
+        name: 'bundleIdentifier',
+        default: function() {
+            return applicationid;
+        },
+        message: "iOS Bundle Identifier",
         validate: function(value) {
             let pass = value.match(/^[a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]+$/);
             if (pass) {
@@ -113,7 +129,7 @@ function initProject(createName) {
         //
         inquirer.prompt(questions(createName, lists)).then(function(answers) {
             let _answers = JSON.parse(JSON.stringify(answers));
-            let {name, release, applicationID, runpod} = _answers;
+            let {name, release, applicationID, bundleIdentifier, runpod} = _answers;
             let rundir = path.resolve(process.cwd(), name);
 
             if (fs.existsSync(name)) {
@@ -130,20 +146,21 @@ function initProject(createName) {
                 logger.weiui("Copying template file...");
                 fs.copySync(releasePath, name);
 
-                changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
-                changeAppKey(rundir);
-
                 if (applicationID !== 'cc.weiui.playground') {
                     let wxpayfile = rundir + '/plugins/android/weiui_pay/src/main/java/cc/weiui/playground/wxapi/WXPayEntryActivity.java';
                     let wxpaydir = rundir + '/plugins/android/weiui_pay/src/main/java/' + applicationID.replace(/\./g, '/') + '/wxapi/';
                     mkdirsSync(wxpaydir);
                     copyFile(wxpayfile, wxpaydir + 'WXPayEntryActivity.java');
                     changeFile(wxpaydir + 'WXPayEntryActivity.java', 'package cc.weiui.playground', 'package ' + applicationID);
+                    changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
                     deleteAll(rundir + '/plugins/android/weiui_pay/src/main/java/cc/weiui/playground');
                 }
 
-                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiApp_xxxxxxxx', 'weiuiApp_' + applicationID.replace(/\./g, '_'));
-                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Weiui/Moduld/WeiuiPayModule.m', 'weiuiApp_xxxxxxxx', 'weiuiApp_' + applicationID.replace(/\./g, '_'));
+                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui.xcodeproj/project.pbxproj', 'PRODUCT_BUNDLE_IDENTIFIER = cc.weiui.playground;', 'PRODUCT_BUNDLE_IDENTIFIER = ' + bundleIdentifier + ';');
+                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiApp_xxxxxxxx', 'weiuiApp_' + bundleIdentifier.replace(/\./g, '_'));
+                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Weiui/Moduld/WeiuiPayModule.m', 'weiuiApp_xxxxxxxx', 'weiuiApp_' + bundleIdentifier.replace(/\./g, '_'));
+
+                changeAppKey(rundir);
 
                 logger.sep();
                 logger.weiui("Project created.");
