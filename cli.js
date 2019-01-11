@@ -157,8 +157,8 @@ function initProject(createName) {
                 }
 
                 changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui.xcodeproj/project.pbxproj', 'PRODUCT_BUNDLE_IDENTIFIER = cc.weiui.playground;', 'PRODUCT_BUNDLE_IDENTIFIER = ' + bundleIdentifier + ';');
-                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiApp_xxxxxxxx', 'weiuiApp_' + bundleIdentifier.replace(/\./g, '_'));
-                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Weiui/Moduld/WeiuiPayModule.m', 'weiuiApp_xxxxxxxx', 'weiuiApp_' + bundleIdentifier.replace(/\./g, '_'));
+                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiApp_xxxxxxxx', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
+                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Weiui/Moduld/WeiuiPayModule.m', 'weiuiApp_xxxxxxxx', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
 
                 changeAppKey(rundir);
 
@@ -312,6 +312,23 @@ function changeAppKey(path) {
     let iosPath = path + "/platforms/ios/WeexWeiui/bundlejs/weiui/config.json";
     if (fs.existsSync(androidPath)) {
         fs.writeFileSync(iosPath, JSON.stringify(config), 'utf8');
+    }
+}
+
+/**
+ * 将点及后面的第一个字母换成大写字母，如：aaa.bbb.ccc换成AaaBbbCcc
+ * @param string
+ * @returns {*}
+ */
+function replaceUpperCase(string) {
+    try {
+        return string.replace(/^[a-z]/g, function ($1) {
+            return $1.toLocaleUpperCase()
+        }).replace(/\.+(\w)/g, function ($1) {
+            return $1.toLocaleUpperCase()
+        }).replace(/\./g, '');
+    }catch (e) {
+        return string;
     }
 }
 
