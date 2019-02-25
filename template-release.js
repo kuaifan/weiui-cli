@@ -10,7 +10,7 @@ const request = require('request').defaults({
     }
 });
 
-let logger = require("./logger");
+let logger = require("./lib/utils/logger");
 
 class TemplateRelease {
     /**

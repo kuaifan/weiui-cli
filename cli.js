@@ -7,8 +7,9 @@ const chalk = require('chalk');
 const inquirer = require('inquirer');
 const ora = require('ora');
 const shelljs = require('shelljs');
-const logger = require("./logger");
+const logger = require("./lib/utils/logger");
 const runapp = require("./lib/run");
+const plugin = require('./lib/plugin');
 
 const TemplateRelease = require("./template-release");
 const constants = require('./index').constants;
@@ -396,6 +397,24 @@ let args = yargs
                 }
                 fs.copySync(tmlPath, filePath);
                 logger.success(`File “${argv.pageName}.vue” created successfully.`);
+            }
+        }
+    })
+    .command({
+        command: "plugin <command> <name>",
+        desc: "Add or remove plugin.",
+        handler: function (argv) {
+            let op = {};
+            op.name = argv.name;
+            op.dir = path.basename(process.cwd());
+            op.platform = "all";
+            switch (argv.command) {
+                case 'add':
+                    plugin.add(op);
+                    break;
+                case 'remove':
+                    plugin.remove(op);
+                    break;
             }
         }
     })
