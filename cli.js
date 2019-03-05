@@ -150,7 +150,7 @@ function initProject(createName) {
                 changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
 
                 changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui.xcodeproj/project.pbxproj', 'PRODUCT_BUNDLE_IDENTIFIER = cc.weiui.playground;', 'PRODUCT_BUNDLE_IDENTIFIER = ' + bundleIdentifier + ';');
-                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiApp_xxxxxxxx', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
+                replaceDictString(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiAppName', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
 
                 changeAppKey(rundir);
 
@@ -259,6 +259,37 @@ function changeFile(path, oldText, newText) {
     let result = fs.readFileSync(path, 'utf8').replace(new RegExp(oldText, "g"), newText);
     if (result) {
         fs.writeFileSync(path, result, 'utf8');
+    }
+}
+
+/**
+ * 替换iOS plist文件项目内容
+ * @param path
+ * @param key
+ * @param value
+ */
+function replaceDictString(path, key, value) {
+    if (!fs.existsSync(path)) {
+        return;
+    }
+    let content = fs.readFileSync(path, 'utf8');
+    let matchs = content.match(/<dict>(.*?)<\/dict>/gs);
+    if (matchs) {
+        matchs.forEach(function (oldText) {
+            if (helper.strExists(oldText, '<string>' + key + '</string>', true)) {
+                let searchValue = helper.getMiddle(oldText, '<array>', '</array>');
+                if (searchValue) {
+                    searchValue = '<array>' + searchValue + '</array>';
+                    let stringValue = '<string>' + helper.getMiddle(searchValue, '<string>', '</string>') + '</string>';
+                    let replaceValue = searchValue.replace(new RegExp(stringValue, "g"), '<string>' + value + '</string>');
+                    let newText = oldText.replace(new RegExp(searchValue, "g"), replaceValue);
+                    let result = fs.readFileSync(path, 'utf8').replace(new RegExp(oldText, "g"), newText);
+                    if (result) {
+                        fs.writeFileSync(path, result, 'utf8');
+                    }
+                }
+            }
+        });
     }
 }
 
