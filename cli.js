@@ -7,6 +7,7 @@ const chalk = require('chalk');
 const inquirer = require('inquirer');
 const ora = require('ora');
 const shelljs = require('shelljs');
+const utils = require("./lib/utils");
 const logger = require("./lib/utils/logger");
 const runapp = require("./lib/run");
 const plugin = require('./lib/plugin');
@@ -276,11 +277,11 @@ function replaceDictString(path, key, value) {
     let matchs = content.match(/<dict>(.*?)<\/dict>/gs);
     if (matchs) {
         matchs.forEach(function (oldText) {
-            if (helper.strExists(oldText, '<string>' + key + '</string>', true)) {
-                let searchValue = helper.getMiddle(oldText, '<array>', '</array>');
+            if (utils.strExists(oldText, '<string>' + key + '</string>', true)) {
+                let searchValue = utils.getMiddle(oldText, '<array>', '</array>');
                 if (searchValue) {
                     searchValue = '<array>' + searchValue + '</array>';
-                    let stringValue = '<string>' + helper.getMiddle(searchValue, '<string>', '</string>') + '</string>';
+                    let stringValue = '<string>' + utils.getMiddle(searchValue, '<string>', '</string>') + '</string>';
                     let replaceValue = searchValue.replace(new RegExp(stringValue, "g"), '<string>' + value + '</string>');
                     let newText = oldText.replace(new RegExp(searchValue, "g"), replaceValue);
                     let result = fs.readFileSync(path, 'utf8').replace(new RegExp(oldText, "g"), newText);
