@@ -147,19 +147,10 @@ function initProject(createName) {
                 logger.weiui("Copying template file...");
                 fs.copySync(releasePath, name);
 
-                if (applicationID !== 'cc.weiui.playground') {
-                    let wxpayfile = rundir + '/plugins/android/weiui_pay/src/main/java/cc/weiui/playground/wxapi/WXPayEntryActivity.java';
-                    let wxpaydir = rundir + '/plugins/android/weiui_pay/src/main/java/' + applicationID.replace(/\./g, '/') + '/wxapi/';
-                    mkdirsSync(wxpaydir);
-                    copyFile(wxpayfile, wxpaydir + 'WXPayEntryActivity.java');
-                    changeFile(wxpaydir + 'WXPayEntryActivity.java', 'package cc.weiui.playground', 'package ' + applicationID);
-                    changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
-                    deleteAll(rundir + '/plugins/android/weiui_pay/src/main/java/cc/weiui/playground');
-                }
+                changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
 
                 changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui.xcodeproj/project.pbxproj', 'PRODUCT_BUNDLE_IDENTIFIER = cc.weiui.playground;', 'PRODUCT_BUNDLE_IDENTIFIER = ' + bundleIdentifier + ';');
                 changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiApp_xxxxxxxx', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
-                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Weiui/Moduld/WeiuiPayModule.m', 'weiuiApp_xxxxxxxx', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
 
                 changeAppKey(rundir);
 
