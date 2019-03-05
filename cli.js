@@ -410,9 +410,13 @@ let args = yargs
             op.platform = "all";
             switch (argv.command) {
                 case 'add':
+                case 'install':
+                case 'i':
                     plugin.add(op);
                     break;
                 case 'remove':
+                case 'uninstall':
+                case 'un':
                     plugin.remove(op);
                     break;
             }
