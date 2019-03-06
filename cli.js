@@ -277,6 +277,7 @@ function replaceDictString(path, key, value) {
     let matchs = content.match(/<dict>(.*?)<\/dict>/gs);
     if (matchs) {
         matchs.forEach(function (oldText) {
+            oldText = oldText.substring(oldText.lastIndexOf('<dict>'), oldText.length);
             if (utils.strExists(oldText, '<string>' + key + '</string>', true)) {
                 let searchValue = utils.getMiddle(oldText, '<array>', '</array>');
                 if (searchValue) {
