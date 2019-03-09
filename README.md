@@ -34,6 +34,14 @@ weiui create [projectName]
 weiui list              // 显示可用的版本
 ```
 
+#### 安装插件
+
+```bash
+weiui plugin <command> <name>
+```
+
+- command: 命令（安装：install，卸载uninstall）
+- name: 插件名称（插件列表可以查看[https://weiui.cc/](https://weiui.cc/)）
 
 #### 版本及帮助
 
