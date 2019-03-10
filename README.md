@@ -16,6 +16,8 @@ npm i weiui-cli -g
 npm update weiui-cli -g
 ```
 
+如果出现`permission denied`等相关权限的错误提示，请使用管理员身份或root身份运行，如 mac：`sudo npm i weiui-cli -g`。
+
 ## 使用
 
 
@@ -31,7 +33,7 @@ weiui create [projectName]
 #### 查询版本
 
 ```bash
-weiui list              // 显示可用的版本
+weiui list              // 显示可create的版本
 ```
 
 #### 安装插件
@@ -46,7 +48,6 @@ weiui plugin <command> <name>
 #### 版本及帮助
 
 ```bash
-weiui -v    // 查看当前toolkit版本
-
+weiui -v    // 查看当前cli版本
 weiui -h    // 命令帮助信息
 ```
