@@ -33,7 +33,7 @@ weiui create [projectName]
 #### 查询版本
 
 ```bash
-weiui list              // 显示可create的版本
+weiui lists              // 显示可create的版本
 ```
 
 #### 安装插件

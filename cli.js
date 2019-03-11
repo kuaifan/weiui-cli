@@ -25,34 +25,39 @@ let questions = function(inputName, releaseLists) {
             if (typeof inputName !== 'string') inputName = "";
             return inputName.trim() ? inputName.trim() : 'weiui-demo';
         },
-        message: "Project name",
+        message: "请输入项目名称",
         validate: function(value) {
             let pass = value.match(/^[0-9a-z\-_]+$/i);
             if (pass) {
                 return true;
             }
 
-            return 'Input format error, please re-enter.';
+            return '输入格式错误，请重新输入。';
         }
     }, {
-        type: 'list',
-        name: 'release',
-        message: "Template releases",
-        choices: releaseLists
+        type: 'input',
+        name: 'appName',
+        default: function () {
+            return 'Weiui演示';
+        },
+        message: "请输入app名称",
+        validate: function (value) {
+            return value !== ''
+        }
     }, {
         type: 'input',
         name: 'applicationID',
         default: function() {
             return 'cc.weiui.demo';
         },
-        message: "Android application id",
+        message: "请输入Android应用ID",
         validate: function(value) {
             let pass = value.match(/^[a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]+$/);
             if (pass) {
                 applicationid = value;
                 return true;
             }
-            return 'Input format error, please re-enter.';
+            return '输入格式错误，请重新输入。';
         }
     }, {
         type: 'input',
@@ -60,32 +65,27 @@ let questions = function(inputName, releaseLists) {
         default: function() {
             return applicationid;
         },
-        message: "iOS Bundle Identifier",
+        message: "请输入iOS应用Bundle ID",
         validate: function(value) {
             let pass = value.match(/^[a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]+$/);
             if (pass) {
                 return true;
             }
-            return 'Input format error, please re-enter.';
+            return '输入格式错误，请重新输入。';
         }
+    }, {
+        type: 'list',
+        name: 'release',
+        message: "请选择模板版本",
+        choices: releaseLists
     }];
-    if (shelljs.which('pod')) {
-        array.push({
-            type: 'confirm',
-            name: 'runpod',
-            default: function() {
-                return true;
-            },
-            message: "iOS project run pod install",
-        });
-    }
     return array;
 };
 
 let runQuestions = [{
     type: 'list',
     name: 'platform',
-    message: 'You can install or update weiui sdk and librarys.',
+    message: '您可以安装或更新Weiui SDK',
     choices: [{
         name: "ios",
         value: "ios"
@@ -100,7 +100,7 @@ let runQuestions = [{
  * 创建 weiui 工程.
  */
 function initProject(createName) {
-    let spinFetch = ora('Downloading releases lists...');
+    let spinFetch = ora('正在下载版本列表...');
     spinFetch.start();
     templateRelease.fetchReleaseVersions((err, result) => {
         spinFetch.stop();
@@ -125,17 +125,17 @@ function initProject(createName) {
         });
         //
         if (lists.length === 0) {
-            logger.error("No available releases was found.");
+            logger.error("没有找到可用的版本。");
             return;
         }
         //
         inquirer.prompt(questions(createName, lists)).then(function(answers) {
             let _answers = JSON.parse(JSON.stringify(answers));
-            let {name, release, applicationID, bundleIdentifier, runpod} = _answers;
+            let {name, appName, release, applicationID, bundleIdentifier} = _answers;
             let rundir = path.resolve(process.cwd(), name);
 
             if (fs.existsSync(name)) {
-                logger.error(`Directory [${name}] already exist.`);
+                logger.error(`目录[${name}]已经存在。`);
                 return;
             }
 
@@ -145,39 +145,42 @@ function initProject(createName) {
                     return;
                 }
 
-                logger.weiui("Copying template file...");
+                logger.weiui("正在复制模板文件...");
                 fs.copySync(releasePath, name);
 
                 changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
+                changeFile(rundir + '/platforms/android/WeexWeiui/app/src/main/res/values/strings.xml', 'WeexWeiui', appName);
 
                 changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui.xcodeproj/project.pbxproj', 'PRODUCT_BUNDLE_IDENTIFIER = cc.weiui.playground;', 'PRODUCT_BUNDLE_IDENTIFIER = ' + bundleIdentifier + ';');
+                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'WeexWeiui', appName);
                 replaceDictString(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiAppName', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
 
                 changeAppKey(rundir);
 
                 logger.sep();
-                logger.weiui("Project created.");
+                logger.weiui("创建项目完成。");
                 logger.sep();
 
                 let finalLog = function(){
-                    logger.weiui("Run flowing code to get started.");
+                    logger.weiui("您可以运行一下命令开始。");
                     logger.weiui(chalk.white(`1. cd ${name}`));
                     logger.weiui(chalk.white(`2. npm install`));
                     logger.weiui(chalk.white(`3. npm run serve`));
                 };
 
-                if (runpod === true) {
-                    let spinPod = ora('Run pod install...');
+                if (shelljs.which('pod')) {
+                    let spinPod = ora('正在运行pod安装...');
                     spinPod.start();
                     shelljs.cd(rundir + '/platforms/ios/WeexWeiui');
                     shelljs.exec('pod install', {silent: true}, function(code, stdout, stderr){
                         spinPod.stop();
                         if (code !== 0) {
-                            logger.warn("Run pod install error:" + code + ", please run manually later.");
+                            logger.warn("运行pod安装错误:" + code + "，请稍后手动运行！");
                         }
                         finalLog();
                     });
-                } else {
+                }else{
+                    logger.warn('未检测到系统安装pod，请安装pod后手动执行pod install！');
                     finalLog();
                 }
             });
@@ -189,13 +192,13 @@ function initProject(createName) {
  * 列出可用的模板版本
  */
 function displayReleases() {
-    logger.log("Fetching release info...");
+    logger.log("正在获取版本信息...");
     templateRelease.fetchReleaseVersions((err, result) => {
         if (err) {
             logger.error(err);
             return;
         }
-        console.log("Available releases:");
+        console.log("可用的版本:");
         result.forEach(t => {
             console.log(chalk.green.underline(t));
         });
@@ -322,7 +325,7 @@ function changeAppKey(path) {
         }
         return pwd;
     };
-    logger.weiui("Create appKey...");
+    logger.weiui("正在创建appKey...");
     config.appKey = createRand(32);
     content+= "/**\n * 配置文件\n * 参数详细说明：http://weiui.cc/#/start/config\n */\n";
     content+= "module.exports = ";
@@ -359,12 +362,12 @@ function replaceUpperCase(string) {
 
 let args = yargs
     .command({
-        command: ["create [name]", "init [name]"],
-        desc: "Create a weiui project.",
+        command: ["create [name]"],
+        desc: "创建一个weiui项目",
         handler: function (argv) {
             if (typeof argv.name === "string") {
                 if (fs.existsSync(argv.name)) {
-                    logger.error(`Directory “${argv.name}” already exist.`);
+                    logger.error(`目录“${argv.name}”已经存在。`);
                     return;
                 }
             }
@@ -372,61 +375,40 @@ let args = yargs
         }
     })
     .command({
-        command: "run [platform]",
-        desc: "Run app in your device.",
-        handler: function (argv) {
-            let dir = path.basename(process.cwd());
-            if (argv.platform  === "ios") {
-                runapp.runIOS({dir});
-            } else if (argv.platform  === "android") {
-                runapp.runAndroid({dir});
-            } else {
-                inquirer.prompt(runQuestions).then(function(answers) {
-                    let platform = JSON.parse(JSON.stringify(answers)).platform;
-                    if (platform === 'ios') {
-                        runapp.runIOS({dir});
-                    }else if (platform === 'android') {
-                        runapp.runAndroid({dir});
-                    }
-                });
-            }
-        }
-    })
-    .command({
-        command: ["list", "lists"],
-        desc: "List available template releases.",
+        command: ["lists"],
+        desc: "列出可用的模板版本",
         handler: function () {
             displayReleases();
         }
     })
     .command({
-        command: "vue [pageName]",
-        desc: "Create the vue page sample template.",
+        command: "vue <pageName>",
+        desc: "创建vue页面示例模板",
         handler: function (argv) {
             if (typeof argv.pageName === "string" && argv.pageName) {
                 let dir = path.resolve(process.cwd(), "src");
                 if (!fs.existsSync(dir)) {
-                    logger.error(`Directory “src” does not exist.`);
+                    logger.error(`目录“src”不存在。`);
                     return;
                 }
                 let filePath = dir + "/" + argv.pageName + ".vue";
                 if (fs.existsSync(filePath)) {
-                    logger.error(`File “${argv.pageName}.vue” already exist.`);
+                    logger.error(`文件“${argv.pageName}.vue”已经存在。`);
                     return;
                 }
                 let tmlPath = __dirname + "/lib/template/_template.vue";
                 if (!fs.existsSync(tmlPath)) {
-                    logger.error(`Template file does not exist.`);
+                    logger.error(`模板文件不存在。`);
                     return;
                 }
                 fs.copySync(tmlPath, filePath);
-                logger.success(`File “${argv.pageName}.vue” created successfully.`);
+                logger.success(`模板文件“${argv.pageName}.vue”成功创建。`);
             }
         }
     })
     .command({
         command: "plugin <command> <name>",
-        desc: "Add or remove plugin.",
+        desc: "添加或删除指定插件",
         handler: function (argv) {
             let op = {};
             op.name = argv.name;
@@ -443,6 +425,27 @@ let args = yargs
                 case 'un':
                     plugin.remove(op);
                     break;
+            }
+        }
+    })
+    .command({
+        command: "run [platform]",
+        desc: "在你的设备上运行app(测试)",
+        handler: function (argv) {
+            let dir = path.basename(process.cwd());
+            if (argv.platform  === "ios") {
+                runapp.runIOS({dir});
+            } else if (argv.platform  === "android") {
+                runapp.runAndroid({dir});
+            } else {
+                inquirer.prompt(runQuestions).then(function(answers) {
+                    let platform = JSON.parse(JSON.stringify(answers)).platform;
+                    if (platform === 'ios') {
+                        runapp.runIOS({dir});
+                    }else if (platform === 'android') {
+                        runapp.runAndroid({dir});
+                    }
+                });
             }
         }
     })

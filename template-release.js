@@ -6,7 +6,7 @@ const decompress = require('decompress');
 const tmp = require('tmp');
 const request = require('request').defaults({
     headers: {
-        'User-Agent': 'node request' // GitHub ask for this.
+        'User-Agent': 'node request'
     }
 });
 
@@ -42,8 +42,8 @@ class TemplateRelease {
                 cb && cb(err);
                 return;
             }
-            if (res.statusCode != 200) {
-                cb && cb(`Failed to fetch releases info - ${res.statusCode}: ${res.body}`);
+            if (res.statusCode !== 200) {
+                cb && cb(`获取信息失败 - ${res.statusCode}: ${res.body}`);
                 return;
             }
             let tags = JSON.parse(body).map(function(e){return e["tag_name"]});
@@ -59,38 +59,33 @@ class TemplateRelease {
     fetchRelease(release, cb) {
         let releasesInfo = this._readReleaseJSON();
         if (release) {
-            // Version specified, try cache.
             let info = releasesInfo[release];
             if (info) {
-                // Hit cache.
                 cb(null, path.join(this.CACHE_TEMPLATE_PATH, info.path));
                 return;
             }
         }
 
         let url = this._getReleaseUrl(release);
-        let spinDown = ora(`Downloading template release: ${release ? release : "latest"}...`);
+        let spinDown = ora(`正在下载模板版本: ${release ? release : "latest"}...`);
         spinDown.start();
         request(url, (err, res, body) => {
             spinDown.stop();
-            if (err || res.statusCode != 200) {
+            if (err || res.statusCode !== 200) {
                 let errorInfo = err ? err : `${res.statusCode}: ${res.body}`;
-                logger.weiui(`Failed to fetch ${url} - ${errorInfo}`);
-                logger.weiui('Checking cache...');
+                logger.weiui(`未能下载 ${url} - ${errorInfo}`);
+                logger.weiui('正在清除缓存...');
                 if (!release) {
-                    // When fetch error, and no release specified, try to figure out the latest release.
                     let latestRleaseInfo = this.getCachedReleaseInfo();
                     if (latestRleaseInfo) {
-                        // Figured out latest release in cache.
-                        logger.weiui(`Found latest release in cache: ${latestRleaseInfo.tag}.`);
+                        logger.weiui(`在缓存中找到最新版本: ${latestRleaseInfo.tag}.`);
                         cb(null, path.join(this.CACHE_TEMPLATE_PATH, latestRleaseInfo.path));
                         return;
                     }
                 }
-                cb(`Failed to fetch release of ${release ? release : "latest"}: ${errorInfo}`);
+                cb(`未能获取版本 ${release ? release : "latest"}: ${errorInfo}`);
                 return;
             }
-            // Successfully fetched info.
             let info = JSON.parse(body);
             let newInfo = {};
             let tag = newInfo.tag = info["tag_name"];
@@ -98,8 +93,7 @@ class TemplateRelease {
             newInfo.path = newInfo.tag;
             let targetPath = path.join(this.CACHE_TEMPLATE_PATH, newInfo.path);
             if (fs.pathExistsSync(targetPath)) {
-                // Probably we are fetching latest release...
-                logger.weiui(`Already cached release.`);
+                logger.weiui(`已经缓存的版本。`);
                 cb(null, targetPath);
                 return;
             }
@@ -170,15 +164,13 @@ class TemplateRelease {
     _readReleaseJSON() {
         fs.ensureFileSync(this.RELEASES_JSON_PATH);
         try {
-            let j = jsonfile.readFileSync(this.RELEASES_JSON_PATH);
-            return j;
+            return jsonfile.readFileSync(this.RELEASES_JSON_PATH);
         } catch (e) {
             return {};
         }
     }
 
     _getReleaseUrl(tag) {
-        // TODO: handle last '/'
         return this.releaseUrl + "/" + (tag ?  `tags/${tag}` : "latest");
     }
 
@@ -188,34 +180,30 @@ class TemplateRelease {
      * @param {string} savePath
      * @param {Function} cb 接收参数 error
      */
-     _downloadAndUnzip(url, savePath, cb) {
-        //console.log("Trying to download...");
+    _downloadAndUnzip(url, savePath, cb) {
         const TMP_DOWNLOAD_PATH = tmp.tmpNameSync({dir: require('os').tmpdir()}) + ".zip";
         let file = fs.createWriteStream(TMP_DOWNLOAD_PATH);
         file.on("close", () => {
-            //console.log("Extracting...");
             decompress(TMP_DOWNLOAD_PATH, this.CACHE_TEMPLATE_PATH).then(() => {
-                //console.log('Done extracting.');
                 let origPath = this._getLastReleasePath();
                 fs.moveSync(origPath, savePath); // 重命名为指定名
                 fs.unlinkSync(TMP_DOWNLOAD_PATH); // 删除下载的压缩包
                 cb && cb();
             })
         }).on("error", (err) => {
-            //console.log(err);
             cb && cb(err)
         });
         request.get(url)
             .on("error", function (err) {
-                cb && cb(`Error downloading release: ${err}`);
+                cb && cb(`下载版本错误: ${err}`);
             })
             .on("response", function (res) {
-                if (res.statusCode != 200) {
+                if (res.statusCode !== 200) {
                     cb && cb("Get zipUrl return a non-200 response.");
                 }
             })
             .on("end", function () {
-                //console.log("Download finished.");
+                //
             })
             .pipe(file);
     }
@@ -224,13 +212,12 @@ class TemplateRelease {
      * 获取刚下载解压的 release 的路径
      * TODO: 目前无法准确获取 release 解压之后的目录名称，只能根据某种模式推断
      */
-     _getLastReleasePath() {
+    _getLastReleasePath() {
         let files = fs.readdirSync(this.CACHE_TEMPLATE_PATH);
-        // e.g. 'weiui-template' in 'https://api.github.com/repos/kuaifan/weiui-template/releases'
         let part = this.releaseUrl.split('/');
         const pattern = part[part.length - 2];
         for (let f of files) {
-            if (f.indexOf(pattern) != -1) {
+            if (f.indexOf(pattern) !== -1) {
                 return path.join( this.CACHE_TEMPLATE_PATH, f);
             }
         }
