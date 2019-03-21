@@ -11,6 +11,8 @@ const utils = require("./lib/utils");
 const logger = require("./lib/utils/logger");
 const runapp = require("./lib/run");
 const plugin = require('./lib/plugin');
+const create = require('./lib/plugin/create');
+const publish = require('./lib/plugin/publish');
 
 const TemplateRelease = require("./template-release");
 const constants = require('./index').constants;
@@ -18,15 +20,15 @@ const templateRelease = new TemplateRelease(constants.cacheDirName, constants.te
 
 let questions = function(inputName, releaseLists) {
     let applicationid = "";
-    let array = [{
+    return [{
         type: 'input',
         name: 'name',
-        default: function() {
+        default: function () {
             if (typeof inputName !== 'string') inputName = "";
             return inputName.trim() ? inputName.trim() : 'weiui-demo';
         },
         message: "请输入项目名称",
-        validate: function(value) {
+        validate: function (value) {
             let pass = value.match(/^[0-9a-z\-_]+$/i);
             if (pass) {
                 return true;
@@ -47,11 +49,11 @@ let questions = function(inputName, releaseLists) {
     }, {
         type: 'input',
         name: 'applicationID',
-        default: function() {
+        default: function () {
             return 'cc.weiui.demo';
         },
         message: "请输入Android应用ID",
-        validate: function(value) {
+        validate: function (value) {
             let pass = value.match(/^[a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]+$/);
             if (pass) {
                 applicationid = value;
@@ -62,11 +64,11 @@ let questions = function(inputName, releaseLists) {
     }, {
         type: 'input',
         name: 'bundleIdentifier',
-        default: function() {
+        default: function () {
             return applicationid;
         },
         message: "请输入iOS应用Bundle ID",
-        validate: function(value) {
+        validate: function (value) {
             let pass = value.match(/^[a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]+$/);
             if (pass) {
                 return true;
@@ -79,7 +81,6 @@ let questions = function(inputName, releaseLists) {
         message: "请选择模板版本",
         choices: releaseLists
     }];
-    return array;
 };
 
 let runQuestions = [{
@@ -362,7 +363,7 @@ function replaceUpperCase(string) {
 
 let args = yargs
     .command({
-        command: ["create [name]"],
+        command: "create [name]",
         desc: "创建一个weiui项目",
         handler: function (argv) {
             if (typeof argv.name === "string") {
@@ -375,7 +376,7 @@ let args = yargs
         }
     })
     .command({
-        command: ["lists"],
+        command: "lists",
         desc: "列出可用的模板版本",
         handler: function () {
             displayReleases();
@@ -408,7 +409,7 @@ let args = yargs
     })
     .command({
         command: "plugin <command> <name>",
-        desc: "添加或删除指定插件",
+        desc: "添加、删除、创建或发布插件",
         handler: function (argv) {
             let op = {};
             op.name = argv.name;
@@ -424,6 +425,12 @@ let args = yargs
                 case 'uninstall':
                 case 'un':
                     plugin.remove(op);
+                    break;
+                case 'create':
+                    create.create(op);
+                    break;
+                case 'publish':
+                    publish.publish(op);
                     break;
             }
         }

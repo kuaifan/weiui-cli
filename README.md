@@ -39,11 +39,11 @@ weiui lists              // 显示可create的版本
 #### 安装插件
 
 ```bash
-weiui plugin <command> <name>
+weiui plugin <command> <pluginName>
 ```
 
-- command: 命令（安装：install，卸载uninstall）
-- name: 插件名称（插件列表可以查看[https://weiui.cc/](https://weiui.cc/)）
+- command: 命令（安装：install，卸载uninstall，创建create，发布publish）
+- pluginName: 插件名称（插件列表可以查看[https://weiui.cc/](https://weiui.cc/)）
 
 #### 版本及帮助
 
