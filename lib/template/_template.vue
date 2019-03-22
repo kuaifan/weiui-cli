@@ -5,7 +5,7 @@
         <!-- 顶部导航 -->
         <div class="nav">
             <text class="nav-title">{{title}}</text>
-            <weiui_icon class="nav-back" @click="goBack"></weiui_icon>
+            <icon class="nav-back" @click="goBack"></icon>
         </div>
 
         <!-- 页面内容 -->

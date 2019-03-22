@@ -8,7 +8,7 @@ import cc.weiui.framework.extend.view.ExtendWebView;
 import cc.weiui.framework.extend.view.webviewBridge.JsCallback;
 
 /**
- * weiui_webview模块组件
+ * web-view模块组件
  */
 public class WebPluginDemoModule {
 
