@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
                     weiui plugin.
                    DESC
 
-  s.homepage     = "http://weiui.cc"
+  s.homepage     = "https://weiui.app"
   s.license      = "MIT"
   s.author             = { "veryitman" => "aipaw@live.cn" }
   s.source =  { :path => '.' }

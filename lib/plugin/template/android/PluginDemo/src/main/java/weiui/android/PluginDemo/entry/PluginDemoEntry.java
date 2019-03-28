@@ -26,7 +26,7 @@ public class PluginDemoEntry {
             e.printStackTrace();
         }
 
-        //2、注册web模块（web-view模块可通过requireModuleJs调用，调用详见：http://weiui.cc/component/web-view.html）
+        //2、注册web模块（web-view模块可通过requireModuleJs调用，调用详见：https://weiui.app/component/web-view.html）
         WebCallBean.addClassData("PluginDemo", WebPluginDemoModule.class);
     }
     

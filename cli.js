@@ -328,7 +328,7 @@ function changeAppKey(path) {
     };
     logger.weiui("正在创建appKey...");
     config.appKey = createRand(32);
-    content+= "/**\n * 配置文件\n * 参数详细说明：http://weiui.cc/#/start/config\n */\n";
+    content+= "/**\n * 配置文件\n * 参数详细说明：https://weiui.app/guide/config.html\n */\n";
     content+= "module.exports = ";
     content+= JSON.stringify(config, null, "\t");
     content+= ";";
