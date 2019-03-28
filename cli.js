@@ -166,7 +166,7 @@ function initProject(createName) {
                     logger.weiui("您可以运行一下命令开始。");
                     logger.weiui(chalk.white(`1. cd ${name}`));
                     logger.weiui(chalk.white(`2. npm install`));
-                    logger.weiui(chalk.white(`3. npm run serve`));
+                    logger.weiui(chalk.white(`3. npm run dev`));
                 };
 
                 if (shelljs.which('pod')) {
