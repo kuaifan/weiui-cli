@@ -408,12 +408,13 @@ let args = yargs
         }
     })
     .command({
-        command: "plugin <command> <name>",
+        command: "plugin <command> <name> [simple]",
         desc: "添加、删除、创建或发布插件",
         handler: function (argv) {
             let op = {};
             op.name = argv.name;
             op.dir = path.basename(process.cwd());
+            op.simple = argv.simple === true;
             op.platform = "all";
             switch (argv.command) {
                 case 'add':
@@ -460,7 +461,8 @@ let args = yargs
     .help()
     .alias({
         "h": "help",
-        "v": "version"
+        "v": "version",
+        "s": "simple"
     })
     .strict(true)
     .demandCommand()
