@@ -9,6 +9,7 @@ const ora = require('ora');
 const shelljs = require('shelljs');
 const utils = require("./lib/utils");
 const logger = require("./lib/utils/logger");
+const backup = require("./lib/utils/backup");
 const runapp = require("./lib/run");
 const plugin = require('./lib/plugin');
 const create = require('./lib/plugin/create');
@@ -193,7 +194,7 @@ function initProject(createName) {
  * 列出可用的模板版本
  */
 function displayReleases() {
-    logger.log("正在获取版本信息...");
+    logger.info("正在获取版本信息...");
     templateRelease.fetchReleaseVersions((err, result) => {
         if (err) {
             logger.error(err);
@@ -437,8 +438,22 @@ let args = yargs
         }
     })
     .command({
+        command: "backup",
+        desc: "备份项目开发文件",   //(含:页面、图标、启动页、app.js、weiui.config.js)
+        handler: function () {
+            backup.backup();
+        }
+    })
+    .command({
+        command: "recovery",
+        desc: "恢复项目备份文件",
+        handler: function () {
+            backup.recovery();
+        }
+    })
+    .command({
         command: "run [platform]",
-        desc: "在你的设备上运行app(测试)",
+        desc: "在你的设备上运行app (实验功能)",
         handler: function (argv) {
             let dir = path.basename(process.cwd());
             if (argv.platform  === "ios") {
