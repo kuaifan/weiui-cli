@@ -1,6 +1,6 @@
 {
     "name": "weiui-cli",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "description": "A simple CLI for scaffolding weex projects, we provide weiui-template to quickly build small and medium sized app.",
     "bin": {
         "weiui": "./cli.js"
