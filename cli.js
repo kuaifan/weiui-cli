@@ -11,6 +11,7 @@ const utils = require("./lib/utils");
 const logger = require("./lib/utils/logger");
 const backup = require("./lib/utils/backup");
 const runapp = require("./lib/run");
+const builder = require("./lib/builder");
 const plugin = require('./lib/plugin');
 const create = require('./lib/plugin/create');
 const publish = require('./lib/plugin/publish');
@@ -155,7 +156,7 @@ function initProject(createName) {
 
                 changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui.xcodeproj/project.pbxproj', 'PRODUCT_BUNDLE_IDENTIFIER = cc.weiui.playground;', 'PRODUCT_BUNDLE_IDENTIFIER = ' + bundleIdentifier + ';');
                 changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'WeexWeiui', appName);
-                replaceDictString(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiAppName', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
+                utils.replaceDictString(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiAppName', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
 
                 changeAppKey(rundir);
 
@@ -265,38 +266,6 @@ function changeFile(path, oldText, newText) {
     let result = fs.readFileSync(path, 'utf8').replace(new RegExp(oldText, "g"), newText);
     if (result) {
         fs.writeFileSync(path, result, 'utf8');
-    }
-}
-
-/**
- * 替换iOS plist文件项目内容
- * @param path
- * @param key
- * @param value
- */
-function replaceDictString(path, key, value) {
-    if (!fs.existsSync(path)) {
-        return;
-    }
-    let content = fs.readFileSync(path, 'utf8');
-    let matchs = content.match(/<dict>(.*?)<\/dict>/gs);
-    if (matchs) {
-        matchs.forEach(function (oldText) {
-            oldText = oldText.substring(oldText.lastIndexOf('<dict>'), oldText.length);
-            if (utils.strExists(oldText, '<string>' + key + '</string>', true)) {
-                let searchValue = utils.getMiddle(oldText, '<array>', '</array>');
-                if (searchValue) {
-                    searchValue = '<array>' + searchValue + '</array>';
-                    let stringValue = '<string>' + utils.getMiddle(searchValue, '<string>', '</string>') + '</string>';
-                    let replaceValue = searchValue.replace(new RegExp(stringValue, "g"), '<string>' + value + '</string>');
-                    let newText = oldText.replace(new RegExp(searchValue, "g"), replaceValue);
-                    let result = fs.readFileSync(path, 'utf8').replace(new RegExp(oldText, "g"), newText);
-                    if (result) {
-                        fs.writeFileSync(path, result, 'utf8');
-                    }
-                }
-            }
-        });
     }
 }
 
@@ -449,6 +418,20 @@ let args = yargs
         desc: "恢复项目备份文件",
         handler: function () {
             backup.recovery();
+        }
+    })
+    .command({
+        command: "dev",
+        desc: "调试开发",
+        handler: function () {
+            builder.dev();
+        }
+    })
+    .command({
+        command: "build",
+        desc: "编译构造",
+        handler: function () {
+            builder.build();
         }
     })
     .command({
