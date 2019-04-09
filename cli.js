@@ -20,7 +20,7 @@ const TemplateRelease = require("./template-release");
 const constants = require('./index').constants;
 const templateRelease = new TemplateRelease(constants.cacheDirName, constants.templateReleaseUrl);
 
-let questions = function(inputName, releaseLists) {
+let questions = function (inputName, releaseLists) {
     let applicationid = "";
     return [{
         type: 'input',
@@ -119,7 +119,7 @@ function initProject(createName) {
                     name: t + " (Latest)",
                     value: t
                 });
-            }else if (lists.length < 5) {
+            } else if (lists.length < 5) {
                 lists.push({
                     name: t,
                     value: t
@@ -132,7 +132,7 @@ function initProject(createName) {
             return;
         }
         //
-        inquirer.prompt(questions(createName, lists)).then(function(answers) {
+        inquirer.prompt(questions(createName, lists)).then(function (answers) {
             let _answers = JSON.parse(JSON.stringify(answers));
             let {name, appName, release, applicationID, bundleIdentifier} = _answers;
             let rundir = path.resolve(process.cwd(), name);
@@ -142,7 +142,7 @@ function initProject(createName) {
                 return;
             }
 
-            templateRelease.fetchRelease(release === 'latest' ? '' : release, function(error, releasePath) {
+            templateRelease.fetchRelease(release === 'latest' ? '' : release, function (error, releasePath) {
                 if (error) {
                     logger.error(error);
                     return;
@@ -164,7 +164,7 @@ function initProject(createName) {
                 logger.weiui("创建项目完成。");
                 logger.sep();
 
-                let finalLog = function(){
+                let finalLog = function () {
                     logger.weiui("您可以运行一下命令开始。");
                     logger.weiui(chalk.white(`1. cd ${name}`));
                     logger.weiui(chalk.white(`2. npm install`));
@@ -175,14 +175,14 @@ function initProject(createName) {
                     let spinPod = ora('正在运行pod安装...');
                     spinPod.start();
                     shelljs.cd(rundir + '/platforms/ios/WeexWeiui');
-                    shelljs.exec('pod install', {silent: true}, function(code, stdout, stderr){
+                    shelljs.exec('pod install', {silent: true}, function (code, stdout, stderr) {
                         spinPod.stop();
                         if (code !== 0) {
                             logger.warn("运行pod安装错误:" + code + "，请稍后手动运行！");
                         }
                         finalLog();
                     });
-                }else{
+                } else {
                     logger.warn('未检测到系统安装pod，请安装pod后手动执行pod install！');
                     finalLog();
                 }
@@ -274,7 +274,7 @@ function changeFile(path, oldText, newText) {
  * @param  {string} path 文件路径.
  */
 function changeAppKey(path) {
-    let configPath =  path + "/weiui.config.js";
+    let configPath = path + "/weiui.config.js";
     if (!fs.existsSync(configPath)) {
         return;
     }
@@ -286,7 +286,7 @@ function changeAppKey(path) {
     if (typeof config.appKey === 'undefined') {
         return;
     }
-    let createRand = function(len) {
+    let createRand = function (len) {
         len = len || 32;
         let $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678oOLl9gqVvUuI1';
         let maxPos = $chars.length;
@@ -298,10 +298,10 @@ function changeAppKey(path) {
     };
     logger.weiui("正在创建appKey...");
     config.appKey = createRand(32);
-    content+= "/**\n * 配置文件\n * 参数详细说明：https://weiui.app/guide/config.html\n */\n";
-    content+= "module.exports = ";
-    content+= JSON.stringify(config, null, "\t");
-    content+= ";";
+    content += "/**\n * 配置文件\n * 参数详细说明：https://weiui.app/guide/config.html\n */\n";
+    content += "module.exports = ";
+    content += JSON.stringify(config, null, "\t");
+    content += ";";
     fs.writeFileSync(configPath, content, 'utf8');
     //
     let androidPath = path + "/platforms/android/WeexWeiui/app/src/main/assets/weiui/config.json";
@@ -326,7 +326,7 @@ function replaceUpperCase(string) {
         }).replace(/\.+(\w)/g, function ($1) {
             return $1.toLocaleUpperCase()
         }).replace(/\./g, '');
-    }catch (e) {
+    } catch (e) {
         return string;
     }
 }
@@ -439,23 +439,23 @@ let args = yargs
         desc: "在你的设备上运行app (实验功能)",
         handler: function (argv) {
             let dir = path.basename(process.cwd());
-            if (argv.platform  === "ios") {
+            if (argv.platform === "ios") {
                 runapp.runIOS({dir});
-            } else if (argv.platform  === "android") {
+            } else if (argv.platform === "android") {
                 runapp.runAndroid({dir});
             } else {
-                inquirer.prompt(runQuestions).then(function(answers) {
+                inquirer.prompt(runQuestions).then(function (answers) {
                     let platform = JSON.parse(JSON.stringify(answers)).platform;
                     if (platform === 'ios') {
                         runapp.runIOS({dir});
-                    }else if (platform === 'android') {
+                    } else if (platform === 'android') {
                         runapp.runAndroid({dir});
                     }
                 });
             }
         }
     })
-    .version()
+    .version(require('./package.json').version)
     .help()
     .alias({
         "h": "help",
