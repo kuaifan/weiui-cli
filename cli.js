@@ -209,51 +209,6 @@ function displayReleases() {
 }
 
 /**
- * 递归创建目录 同步方法
- * @param dirname
- * @returns {boolean}
- */
-function mkdirsSync(dirname) {
-    if (fs.existsSync(dirname)) {
-        return true;
-    } else {
-        if (mkdirsSync(path.dirname(dirname))) {
-            fs.mkdirSync(dirname);
-            return true;
-        }
-    }
-}
-
-/**
- * 复制文件
- * @param src
- * @param dist
- */
-function copyFile(src, dist) {
-    fs.writeFileSync(dist, fs.readFileSync(src));
-}
-
-/**
- * 删除目录
- * @param path
- */
-function deleteAll(path) {
-    let files = [];
-    if (fs.existsSync(path)) {
-        files = fs.readdirSync(path);
-        files.forEach(function (file, index) {
-            let curPath = path + "/" + file;
-            if (fs.statSync(curPath).isDirectory()) {
-                deleteAll(curPath);
-            } else {
-                fs.unlinkSync(curPath);
-            }
-        });
-        fs.rmdirSync(path);
-    }
-}
-
-/**
  * 替换字符串
  * @param  {string} path 文件路径.
  * @param  {string} oldText
@@ -408,7 +363,7 @@ let args = yargs
     })
     .command({
         command: "backup",
-        desc: "备份项目开发文件",   //(含:页面、图标、启动页、app.js、weiui.config.js)
+        desc: "备份项目开发文件",   //(含:页面、图标、启动页、weiui.config.js)
         handler: function () {
             backup.backup();
         }
