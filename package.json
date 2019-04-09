@@ -17,7 +17,7 @@
         "hybird app"
     ],
     "author": "KuaiFan",
-    "license": "ISC",
+    "license": "MIT",
     "engines": {
         "node": ">=8"
     },
