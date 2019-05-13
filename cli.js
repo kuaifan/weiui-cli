@@ -362,6 +362,24 @@ let args = yargs
         }
     })
     .command({
+        command: "login",
+        desc: "登录云中心",
+        handler: function () {
+            utils.login((data) => {
+                logger.weiuis(data.username + ' 登录成功！');
+            });
+        }
+    })
+    .command({
+        command: "logout",
+        desc: "登出云中心",
+        handler: function () {
+            utils.logout(() => {
+                logger.weiuis('退出成功！');
+            });
+        }
+    })
+    .command({
         command: "backup",
         desc: "备份项目开发文件",   //(含:页面、图标、启动页、weiui.config.js)
         handler: function () {
