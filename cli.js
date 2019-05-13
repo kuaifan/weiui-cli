@@ -317,7 +317,7 @@ let args = yargs
                     logger.error(`目录“src”不存在。`);
                     return;
                 }
-                let filePath = dir + "/" + argv.pageName + ".vue";
+                let filePath = dir + "/pages/" + argv.pageName + ".vue";
                 if (fs.existsSync(filePath)) {
                     logger.error(`文件“${argv.pageName}.vue”已经存在。`);
                     return;
