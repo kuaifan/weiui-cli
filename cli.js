@@ -7,18 +7,20 @@ const chalk = require('chalk');
 const inquirer = require('inquirer');
 const ora = require('ora');
 const shelljs = require('shelljs');
-const utils = require("./lib/utils");
 const logger = require("./lib/utils/logger");
+const utils = require("./lib/utils");
 const backup = require("./lib/utils/backup");
 const runapp = require("./lib/run");
 const builder = require("./lib/builder");
 const plugin = require('./lib/plugin');
 const create = require('./lib/plugin/create');
 const publish = require('./lib/plugin/publish');
+const update = require('./lib/utils/update');
 
 const TemplateRelease = require("./template-release");
 const constants = require('./index').constants;
 const templateRelease = new TemplateRelease(constants.cacheDirName, constants.templateReleaseUrl);
+const isWin = /^win/.test(process.platform);
 
 let questions = function (inputName, releaseLists) {
     let applicationid = "";
@@ -35,7 +37,6 @@ let questions = function (inputName, releaseLists) {
             if (pass) {
                 return true;
             }
-
             return '输入格式错误，请重新输入。';
         }
     }, {
@@ -142,7 +143,8 @@ function initProject(createName) {
                 return;
             }
 
-            templateRelease.fetchRelease(release === 'latest' ? '' : release, function (error, releasePath) {
+            release = release === 'latest' ? '' : release;
+            templateRelease.fetchRelease(release, function (error, releasePath) {
                 if (error) {
                     logger.error(error);
                     return;
@@ -158,13 +160,11 @@ function initProject(createName) {
                 changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'WeexWeiui', appName);
                 utils.replaceDictString(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiAppName', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
 
-                changeAppKey(rundir);
+                changeAppKey(rundir, release);
 
-                logger.sep();
-                logger.weiui("创建项目完成。");
-                logger.sep();
-
-                let finalLog = function () {
+                let finalLog = () => {
+                    logger.weiuis("创建项目完成。");
+                    logger.sep();
                     logger.weiui("您可以运行一下命令开始。");
                     logger.weiui(chalk.white(`1. cd ${name}`));
                     logger.weiui(chalk.white(`2. npm install`));
@@ -183,7 +183,9 @@ function initProject(createName) {
                         finalLog();
                     });
                 } else {
-                    logger.warn('未检测到系统安装pod，请安装pod后手动执行pod install！');
+                    if (isWin) {
+                        logger.warn('未检测到系统安装pod，请安装pod后手动执行pod install！');
+                    }
                     finalLog();
                 }
             });
@@ -227,8 +229,9 @@ function changeFile(path, oldText, newText) {
 /**
  * 生成appKey
  * @param  {string} path 文件路径.
+ * @param {string} release 模板版本
  */
-function changeAppKey(path) {
+function changeAppKey(path, release) {
     let configPath = path + "/weiui.config.js";
     if (!fs.existsSync(configPath)) {
         return;
@@ -267,6 +270,8 @@ function changeAppKey(path) {
     if (fs.existsSync(androidPath)) {
         fs.writeFileSync(iosPath, JSON.stringify(config), 'utf8');
     }
+    //
+    fs.writeFileSync(path + "/.weiui.release", release, 'utf8');
 }
 
 /**
@@ -301,6 +306,14 @@ let args = yargs
         }
     })
     .command({
+        command: "update",
+        desc: "项目主框架升级至最新版本",
+        handler: function () {
+            utils.verifyWeiuiProject();
+            update.start();
+        }
+    })
+    .command({
         command: "lists",
         desc: "列出可用的模板版本",
         handler: function () {
@@ -311,10 +324,11 @@ let args = yargs
         command: "vue <pageName>",
         desc: "创建vue页面示例模板",
         handler: function (argv) {
+            utils.verifyWeiuiProject();
             if (typeof argv.pageName === "string" && argv.pageName) {
                 let dir = path.resolve(process.cwd(), "src");
                 if (!fs.existsSync(dir)) {
-                    logger.error(`目录“src”不存在。`);
+                    logger.error(`目录“src”不存在，当前目录非weiui项目。`);
                     return;
                 }
                 let filePath = dir + "/pages/" + argv.pageName + ".vue";
@@ -336,6 +350,7 @@ let args = yargs
         command: "plugin <command> <name> [simple]",
         desc: "添加、删除、创建或发布插件",
         handler: function (argv) {
+            utils.verifyWeiuiProject();
             let op = {};
             op.name = argv.name;
             op.dir = path.basename(process.cwd());
@@ -383,6 +398,7 @@ let args = yargs
         command: "backup",
         desc: "备份项目开发文件",   //(含:页面、图标、启动页、weiui.config.js)
         handler: function () {
+            utils.verifyWeiuiProject();
             backup.backup();
         }
     })
@@ -390,6 +406,7 @@ let args = yargs
         command: "recovery",
         desc: "恢复项目备份文件",
         handler: function () {
+            utils.verifyWeiuiProject();
             backup.recovery();
         }
     })
@@ -397,6 +414,7 @@ let args = yargs
         command: "dev",
         desc: "调试开发",
         handler: function () {
+            utils.verifyWeiuiProject();
             builder.dev();
         }
     })
@@ -404,6 +422,7 @@ let args = yargs
         command: "build",
         desc: "编译构造",
         handler: function () {
+            utils.verifyWeiuiProject();
             builder.build();
         }
     })
@@ -411,6 +430,7 @@ let args = yargs
         command: "run [platform]",
         desc: "在你的设备上运行app (实验功能)",
         handler: function (argv) {
+            utils.verifyWeiuiProject();
             let dir = path.basename(process.cwd());
             if (argv.platform === "ios") {
                 runapp.runIOS({dir});
