@@ -2,13 +2,14 @@
 
 const yargs = require("yargs");
 const path = require("path");
-const fs = require("fs-extra");
+const fse = require("fs-extra");
 const chalk = require('chalk');
 const inquirer = require('inquirer');
 const ora = require('ora');
 const shelljs = require('shelljs');
 const logger = require("./lib/utils/logger");
 const utils = require("./lib/utils");
+const project = require("./lib/utils/project");
 const backup = require("./lib/utils/backup");
 const runapp = require("./lib/run");
 const builder = require("./lib/builder");
@@ -96,8 +97,7 @@ let runQuestions = [{
     }, {
         name: "android",
         value: "android"
-    }
-    ]
+    }]
 }];
 
 /**
@@ -135,15 +135,14 @@ function initProject(createName) {
         //
         inquirer.prompt(questions(createName, lists)).then(function (answers) {
             let _answers = JSON.parse(JSON.stringify(answers));
-            let {name, appName, release, applicationID, bundleIdentifier} = _answers;
-            let rundir = path.resolve(process.cwd(), name);
+            let rundir = path.resolve(process.cwd(), _answers.name);
 
-            if (fs.existsSync(name)) {
-                logger.error(`目录[${name}]已经存在。`);
+            if (fse.existsSync(_answers.name)) {
+                logger.error(`目录[${_answers.name}]已经存在。`);
                 return;
             }
 
-            release = release === 'latest' ? '' : release;
+            let release = _answers.release === 'latest' ? '' : _answers.release;
             templateRelease.fetchRelease(release, function (error, releasePath) {
                 if (error) {
                     logger.error(error);
@@ -151,34 +150,28 @@ function initProject(createName) {
                 }
 
                 logger.weiui("正在复制模板文件...");
-                fs.copySync(releasePath, name);
 
-                changeFile(rundir + '/platforms/android/WeexWeiui/build.gradle', 'cc.weiui.playground', applicationID);
-                changeFile(rundir + '/platforms/android/WeexWeiui/app/src/main/res/values/strings.xml', 'WeexWeiui', appName);
-
-                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui.xcodeproj/project.pbxproj', 'PRODUCT_BUNDLE_IDENTIFIER = cc.weiui.playground;', 'PRODUCT_BUNDLE_IDENTIFIER = ' + bundleIdentifier + ';');
-                changeFile(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'WeexWeiui', appName);
-                utils.replaceDictString(rundir + '/platforms/ios/WeexWeiui/WeexWeiui/Info.plist', 'weiuiAppName', 'weiuiApp' + replaceUpperCase(bundleIdentifier));
-
-                changeAppKey(rundir, release);
+                fse.copySync(releasePath, _answers.name);
+                project.initConfig(rundir, _answers);
+                changeAppKey(rundir);
 
                 let finalLog = () => {
                     logger.weiuis("创建项目完成。");
                     logger.sep();
                     logger.weiui("您可以运行一下命令开始。");
-                    logger.weiui(chalk.white(`1. cd ${name}`));
+                    logger.weiui(chalk.white(`1. cd ${_answers.name}`));
                     logger.weiui(chalk.white(`2. npm install`));
                     logger.weiui(chalk.white(`3. npm run dev`));
                 };
 
                 if (shelljs.which('pod')) {
-                    let spinPod = ora('正在运行pod安装...');
+                    let spinPod = ora('正在运行pod install...');
                     spinPod.start();
                     shelljs.cd(rundir + '/platforms/ios/WeexWeiui');
                     shelljs.exec('pod install', {silent: true}, function (code, stdout, stderr) {
                         spinPod.stop();
                         if (code !== 0) {
-                            logger.warn("运行pod安装错误:" + code + "，请稍后手动运行！");
+                            logger.warn("运行pod install错误:" + code + "，请稍后手动运行！");
                         }
                         finalLog();
                     });
@@ -211,29 +204,12 @@ function displayReleases() {
 }
 
 /**
- * 替换字符串
- * @param  {string} path 文件路径.
- * @param  {string} oldText
- * @param  {string} newText
- */
-function changeFile(path, oldText, newText) {
-    if (!fs.existsSync(path)) {
-        return;
-    }
-    let result = fs.readFileSync(path, 'utf8').replace(new RegExp(oldText, "g"), newText);
-    if (result) {
-        fs.writeFileSync(path, result, 'utf8');
-    }
-}
-
-/**
  * 生成appKey
  * @param  {string} path 文件路径.
- * @param {string} release 模板版本
  */
-function changeAppKey(path, release) {
+function changeAppKey(path) {
     let configPath = path + "/weiui.config.js";
-    if (!fs.existsSync(configPath)) {
+    if (!fse.existsSync(configPath)) {
         return;
     }
     let config = require(configPath);
@@ -260,34 +236,15 @@ function changeAppKey(path, release) {
     content += "module.exports = ";
     content += JSON.stringify(config, null, "\t");
     content += ";";
-    fs.writeFileSync(configPath, content, 'utf8');
+    fse.writeFileSync(configPath, content, 'utf8');
     //
     let androidPath = path + "/platforms/android/WeexWeiui/app/src/main/assets/weiui/config.json";
-    if (fs.existsSync(androidPath)) {
-        fs.writeFileSync(androidPath, JSON.stringify(config), 'utf8');
+    if (fse.existsSync(androidPath)) {
+        fse.writeFileSync(androidPath, JSON.stringify(config), 'utf8');
     }
     let iosPath = path + "/platforms/ios/WeexWeiui/bundlejs/weiui/config.json";
-    if (fs.existsSync(androidPath)) {
-        fs.writeFileSync(iosPath, JSON.stringify(config), 'utf8');
-    }
-    //
-    fs.writeFileSync(path + "/.weiui.release", release, 'utf8');
-}
-
-/**
- * 将点及后面的第一个字母换成大写字母，如：aaa.bbb.ccc换成AaaBbbCcc
- * @param string
- * @returns {*}
- */
-function replaceUpperCase(string) {
-    try {
-        return string.replace(/^[a-z]/g, function ($1) {
-            return $1.toLocaleUpperCase()
-        }).replace(/\.+(\w)/g, function ($1) {
-            return $1.toLocaleUpperCase()
-        }).replace(/\./g, '');
-    } catch (e) {
-        return string;
+    if (fse.existsSync(androidPath)) {
+        fse.writeFileSync(iosPath, JSON.stringify(config), 'utf8');
     }
 }
 
@@ -297,7 +254,7 @@ let args = yargs
         desc: "创建一个weiui项目",
         handler: function (argv) {
             if (typeof argv.name === "string") {
-                if (fs.existsSync(argv.name)) {
+                if (fse.existsSync(argv.name)) {
                     logger.error(`目录“${argv.name}”已经存在。`);
                     return;
                 }
@@ -327,21 +284,21 @@ let args = yargs
             utils.verifyWeiuiProject();
             if (typeof argv.pageName === "string" && argv.pageName) {
                 let dir = path.resolve(process.cwd(), "src");
-                if (!fs.existsSync(dir)) {
+                if (!fse.existsSync(dir)) {
                     logger.error(`目录“src”不存在，当前目录非weiui项目。`);
                     return;
                 }
                 let filePath = dir + "/pages/" + argv.pageName + ".vue";
-                if (fs.existsSync(filePath)) {
+                if (fse.existsSync(filePath)) {
                     logger.error(`文件“${argv.pageName}.vue”已经存在。`);
                     return;
                 }
                 let tmlPath = __dirname + "/lib/template/_template.vue";
-                if (!fs.existsSync(tmlPath)) {
+                if (!fse.existsSync(tmlPath)) {
                     logger.error(`模板文件不存在。`);
                     return;
                 }
-                fs.copySync(tmlPath, filePath);
+                fse.copySync(tmlPath, filePath);
                 logger.success(`模板文件“${argv.pageName}.vue”成功创建。`);
             }
         }
