@@ -90,8 +90,8 @@
              */
             goForward(jsPageName, params) {
                 weiui.openPage({
-                    url: str + '.js',
-                    pageType: 'weex',
+                    url: str + ".js",
+                    pageType: "app",
                     statusBarColor: "#E31D1A",
                     params: params ? params : {}
                 });

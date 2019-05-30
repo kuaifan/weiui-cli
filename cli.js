@@ -23,17 +23,17 @@ const constants = require('./index').constants;
 const templateRelease = new TemplateRelease(constants.cacheDirName, constants.templateReleaseUrl);
 const isWin = /^win/.test(process.platform);
 
-let questions = function (inputName, releaseLists) {
+let questions = (inputName, releaseLists) => {
     let applicationid = "";
     return [{
         type: 'input',
         name: 'name',
-        default: function () {
+        default: () => {
             if (typeof inputName !== 'string') inputName = "";
             return inputName.trim() ? inputName.trim() : 'weiui-demo';
         },
         message: "请输入项目名称",
-        validate: function (value) {
+        validate: (value) => {
             let pass = value.match(/^[0-9a-z\-_]+$/i);
             if (pass) {
                 return true;
@@ -43,21 +43,21 @@ let questions = function (inputName, releaseLists) {
     }, {
         type: 'input',
         name: 'appName',
-        default: function () {
+        default: () => {
             return 'Weiui演示';
         },
         message: "请输入app名称",
-        validate: function (value) {
+        validate: (value) => {
             return value !== ''
         }
     }, {
         type: 'input',
         name: 'applicationID',
-        default: function () {
+        default: () => {
             return 'cc.weiui.demo';
         },
         message: "请输入Android应用ID",
-        validate: function (value) {
+        validate: (value) => {
             let pass = value.match(/^[a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]+$/);
             if (pass) {
                 applicationid = value;
@@ -68,11 +68,11 @@ let questions = function (inputName, releaseLists) {
     }, {
         type: 'input',
         name: 'bundleIdentifier',
-        default: function () {
+        default: () => {
             return applicationid;
         },
         message: "请输入iOS应用Bundle ID",
-        validate: function (value) {
+        validate: (value) => {
             let pass = value.match(/^[a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]*[.][a-zA-Z_][a-zA-Z0-9_]+$/);
             if (pass) {
                 return true;
@@ -133,7 +133,7 @@ function initProject(createName) {
             return;
         }
         //
-        inquirer.prompt(questions(createName, lists)).then(function (answers) {
+        inquirer.prompt(questions(createName, lists)).then((answers) => {
             let _answers = JSON.parse(JSON.stringify(answers));
             let rundir = path.resolve(process.cwd(), _answers.name);
 
@@ -143,7 +143,7 @@ function initProject(createName) {
             }
 
             let release = _answers.release === 'latest' ? '' : _answers.release;
-            templateRelease.fetchRelease(release, function (error, releasePath) {
+            templateRelease.fetchRelease(release, (error, releasePath) => {
                 if (error) {
                     logger.error(error);
                     return;
@@ -167,8 +167,8 @@ function initProject(createName) {
                 if (shelljs.which('pod')) {
                     let spinPod = ora('正在运行pod install...');
                     spinPod.start();
-                    shelljs.cd(rundir + '/platforms/ios/WeexWeiui');
-                    shelljs.exec('pod install', {silent: true}, function (code, stdout, stderr) {
+                    shelljs.cd(rundir + '/platforms/ios/WeiuiApp');
+                    shelljs.exec('pod install', {silent: true}, (code, stdout, stderr) => {
                         spinPod.stop();
                         if (code !== 0) {
                             logger.warn("运行pod install错误:" + code + "，请稍后手动运行！");
@@ -220,7 +220,7 @@ function changeAppKey(path) {
     if (typeof config.appKey === 'undefined') {
         return;
     }
-    let createRand = function (len) {
+    let createRand = (len) => {
         len = len || 32;
         let $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678oOLl9gqVvUuI1';
         let maxPos = $chars.length;
@@ -238,11 +238,11 @@ function changeAppKey(path) {
     content += ";";
     fse.writeFileSync(configPath, content, 'utf8');
     //
-    let androidPath = path + "/platforms/android/WeexWeiui/app/src/main/assets/weiui/config.json";
+    let androidPath = path + "/platforms/android/WeiuiApp/app/src/main/assets/weiui/config.json";
     if (fse.existsSync(androidPath)) {
         fse.writeFileSync(androidPath, JSON.stringify(config), 'utf8');
     }
-    let iosPath = path + "/platforms/ios/WeexWeiui/bundlejs/weiui/config.json";
+    let iosPath = path + "/platforms/ios/WeiuiApp/bundlejs/weiui/config.json";
     if (fse.existsSync(androidPath)) {
         fse.writeFileSync(iosPath, JSON.stringify(config), 'utf8');
     }
@@ -252,7 +252,7 @@ let args = yargs
     .command({
         command: "create [name]",
         desc: "创建一个weiui项目",
-        handler: function (argv) {
+        handler: (argv) => {
             if (typeof argv.name === "string") {
                 if (fse.existsSync(argv.name)) {
                     logger.error(`目录“${argv.name}”已经存在。`);
@@ -265,7 +265,7 @@ let args = yargs
     .command({
         command: "update",
         desc: "项目主框架升级至最新版本",
-        handler: function () {
+        handler: () => {
             utils.verifyWeiuiProject();
             update.start();
         }
@@ -273,15 +273,16 @@ let args = yargs
     .command({
         command: "lists",
         desc: "列出可用的模板版本",
-        handler: function () {
+        handler: () => {
             displayReleases();
         }
     })
     .command({
         command: "vue <pageName>",
         desc: "创建vue页面示例模板",
-        handler: function (argv) {
+        handler: (argv) => {
             utils.verifyWeiuiProject();
+            utils.verifyWeiuiTemplate();
             if (typeof argv.pageName === "string" && argv.pageName) {
                 let dir = path.resolve(process.cwd(), "src");
                 if (!fse.existsSync(dir)) {
@@ -306,8 +307,9 @@ let args = yargs
     .command({
         command: "plugin <command> <name> [simple]",
         desc: "添加、删除、创建或发布插件",
-        handler: function (argv) {
+        handler: (argv) => {
             utils.verifyWeiuiProject();
+            utils.verifyWeiuiTemplate();
             let op = {};
             op.name = argv.name;
             op.dir = path.basename(process.cwd());
@@ -336,7 +338,7 @@ let args = yargs
     .command({
         command: "login",
         desc: "登录云中心",
-        handler: function () {
+        handler: () => {
             utils.login((data) => {
                 logger.weiuis(data.username + ' 登录成功！');
             });
@@ -345,7 +347,7 @@ let args = yargs
     .command({
         command: "logout",
         desc: "登出云中心",
-        handler: function () {
+        handler: () => {
             utils.logout(() => {
                 logger.weiuis('退出成功！');
             });
@@ -353,8 +355,8 @@ let args = yargs
     })
     .command({
         command: "backup",
-        desc: "备份项目开发文件",   //(含:页面、图标、启动页、weiui.config.js)
-        handler: function () {
+        desc: "备份项目开发文件",
+        handler: () => {
             utils.verifyWeiuiProject();
             backup.backup();
         }
@@ -362,39 +364,43 @@ let args = yargs
     .command({
         command: "recovery",
         desc: "恢复项目备份文件",
-        handler: function () {
+        handler: () => {
             utils.verifyWeiuiProject();
+            utils.verifyWeiuiTemplate();
             backup.recovery();
         }
     })
     .command({
         command: "dev",
         desc: "调试开发",
-        handler: function () {
+        handler: () => {
             utils.verifyWeiuiProject();
+            utils.verifyWeiuiTemplate();
             builder.dev();
         }
     })
     .command({
         command: "build",
         desc: "编译构造",
-        handler: function () {
+        handler: () => {
             utils.verifyWeiuiProject();
+            utils.verifyWeiuiTemplate();
             builder.build();
         }
     })
     .command({
         command: "run [platform]",
         desc: "在你的设备上运行app (实验功能)",
-        handler: function (argv) {
+        handler: (argv) => {
             utils.verifyWeiuiProject();
+            utils.verifyWeiuiTemplate();
             let dir = path.basename(process.cwd());
             if (argv.platform === "ios") {
                 runapp.runIOS({dir});
             } else if (argv.platform === "android") {
                 runapp.runAndroid({dir});
             } else {
-                inquirer.prompt(runQuestions).then(function (answers) {
+                inquirer.prompt(runQuestions).then((answers) => {
                     let platform = JSON.parse(JSON.stringify(answers)).platform;
                     if (platform === 'ios') {
                         runapp.runIOS({dir});
