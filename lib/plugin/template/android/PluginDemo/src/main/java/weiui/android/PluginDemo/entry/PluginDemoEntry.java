@@ -8,7 +8,7 @@ import com.taobao.weex.common.WXException;
 import cc.weiui.framework.extend.annotation.ModuleEntry;
 import cc.weiui.framework.extend.bean.WebCallBean;
 import weiui.android.PluginDemo.module.WebPluginDemoModule;
-import weiui.android.PluginDemo.module.WeexPluginDemoModule;
+import weiui.android.PluginDemo.module.AppPluginDemoModule;
 
 @ModuleEntry
 public class PluginDemoEntry {
@@ -21,7 +21,7 @@ public class PluginDemoEntry {
 
         //1、注册weex模块
         try {
-            WXSDKEngine.registerModule("PluginDemo", WeexPluginDemoModule.class);
+            WXSDKEngine.registerModule("PluginDemo", AppPluginDemoModule.class);
         } catch (WXException e) {
             e.printStackTrace();
         }

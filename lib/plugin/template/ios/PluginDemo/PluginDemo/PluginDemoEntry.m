@@ -1,15 +1,15 @@
 //
-//  PluginDemo.m
+//  PluginDemoEntry.m
 //  Pods
 //
 
-#import "PluginDemo.h"
-#import "PluginDemoBridge.h"
+#import "PluginDemoEntry.h"
+#import "WebPluginDemoModule.h"
 #import "WeexInitManager.h"
 #import <WebKit/WKWebView.h>
 
-WEEX_PLUGIN_INIT(PluginDemo)
-@implementation PluginDemo
+WEEX_PLUGIN_INIT(PluginDemoEntry)
+@implementation PluginDemoEntry
 
 //启动成功
 - (void) didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
@@ -56,7 +56,7 @@ WEEX_PLUGIN_INIT(PluginDemo)
 //webView初始化
 - (void) setJSCallModule:(JSCallCommon *)callCommon webView:(WKWebView*)webView
 {
-    [callCommon setJSCallAssign:webView name:@"PluginDemo" bridge:[[PluginDemoBridge alloc] init]];
+    [callCommon setJSCallAssign:webView name:@"PluginDemo" bridge:[[WebPluginDemoModule alloc] init]];
 }
 
 @end

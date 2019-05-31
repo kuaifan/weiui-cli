@@ -1,21 +1,15 @@
 //
-//  PluginDemoModule.m
+//  WebPluginDemoModule.m
 //  Pods
 //
 
-#import "PluginDemoModule.h"
-#import <WeexPluginLoader/WeexPluginLoader.h>
+#import "WebPluginDemoModule.h"
 
-@interface PluginDemoModule ()
+@interface WebPluginDemoModule ()
 
 @end
 
-@implementation PluginDemoModule
-
-WX_PlUGIN_EXPORT_MODULE(PluginDemo, PluginDemoModule)
-WX_EXPORT_METHOD(@selector(simple:))
-WX_EXPORT_METHOD(@selector(call:callback:))
-WX_EXPORT_METHOD_SYNC(@selector(retMsg:))
+@implementation WebPluginDemoModule
 
 //简单
 - (void)simple:(NSString*)msg

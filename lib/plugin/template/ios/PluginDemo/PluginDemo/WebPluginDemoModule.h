@@ -1,11 +1,11 @@
 //
-//  PluginDemoBridge.h
+//  WebPluginDemoModule.h
 //  Pods
 //
 
 #import <Foundation/Foundation.h>
 #import "WeexSDK.h"
 
-@interface PluginDemoBridge : NSObject
+@interface WebPluginDemoModule : NSObject
 
 @end
